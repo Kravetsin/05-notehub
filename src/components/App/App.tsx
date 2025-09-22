@@ -5,31 +5,46 @@ import NoteList from "../NoteList/NoteList";
 import ReactPaginate from "react-paginate";
 import SearchBox from "../SearchBox/SearchBox";
 import Modal from "../Modal/Modal";
-import { useFetchNotes } from "../../services/noteService";
+import { deleteNote, useFetchNotes } from "../../services/noteService";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast, { Toaster } from "react-hot-toast";
 import { useDebouncedCallback } from "use-debounce";
 
 export default function App() {
+  //! 🔹 States
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [text, setText] = useState("");
 
+  //! 🔹 Modal
   const closeModal = () => setIsModalOpen(false);
   const openModal = () => {
     setIsModalOpen(true);
   };
 
-  const [text, setText] = useState("");
-
+  //! 🔹 Debounce Search
   const handleChange = useDebouncedCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => setText(event.target.value),
     300
   );
 
+  //! 🔹 Notes Response
+  const { data, isSuccess } = useFetchNotes(currentPage, text);
+  const queryClient = useQueryClient();
+  const deleteMutation = useMutation({
+    mutationFn: deleteNote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+    },
+  });
+  const onDeleteNote = (id: string) => {
+    deleteMutation.mutate(id);
+  };
+
+  //! 🔹 Hooks
   useEffect(() => {
     setCurrentPage(1);
   }, [text]);
-
-  const { data, isSuccess } = useFetchNotes(currentPage, text);
 
   useEffect(() => {
     if (
@@ -42,6 +57,7 @@ export default function App() {
     }
   }, [isSuccess, data]);
 
+  //! 🔹 Render
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
@@ -64,7 +80,7 @@ export default function App() {
         </button>
       </header>
       {data && Array.isArray(data.notes) && data.notes.length > 0 && (
-        <NoteList notes={data.notes} />
+        <NoteList notes={data.notes} onDeleteNote={onDeleteNote} />
       )}
       {isModalOpen && <Modal onClose={closeModal} />}
 

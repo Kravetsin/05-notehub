@@ -12,7 +12,7 @@ type NoteHttpProps = {
 
 axios.defaults.baseURL = "https://notehub-public.goit.study/api/";
 
-export const fetchNotes = async (
+const fetchNotes = async (
   page: number,
   search: string
 ): Promise<NoteHttpProps> => {
@@ -27,11 +27,45 @@ export const fetchNotes = async (
 
   try {
     const response = await axios.get<NoteHttpProps>("notes", options);
-    console.log(response.data);
-
     return response.data;
   } catch (error) {
     toast.error("Error fetching notes");
+    throw error;
+  }
+};
+
+export const createNote = async (noteData: {
+  title: string;
+  content: string;
+  tag: string;
+}): Promise<NoteHttpProps> => {
+  try {
+    const response = await axios.post<NoteHttpProps>("notes", noteData, {
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${myKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+    toast.success("Note added successfully!");
+    return response.data;
+  } catch (error) {
+    toast.error("Error fetching notes");
+    throw error;
+  }
+};
+
+export const deleteNote = async (id: string): Promise<void> => {
+  try {
+    await axios.delete(`/notes/${id}`, {
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${myKey}`,
+      },
+    });
+    toast.success("Note deleted successfully!");
+  } catch (error) {
+    toast.error("Error deleting note");
     throw error;
   }
 };

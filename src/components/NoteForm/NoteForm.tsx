@@ -2,6 +2,8 @@ import css from "./NoteForm.module.css";
 import { useId } from "react";
 import { Formik, Form, Field, ErrorMessage, type FormikHelpers } from "formik";
 import * as Yup from "yup";
+import { createNote } from "../../services/noteService";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export type NoteFormValues = {
   title: string;
@@ -22,6 +24,15 @@ type NoteFormProps = {
 
 export default function NoteForm({ onClose }: NoteFormProps) {
   const fieldId = useId();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: createNote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      onClose();
+    },
+  });
   const OrderFormSchema = Yup.object().shape({
     title: Yup.string()
       .min(3, "Title must be at least 3 characters")
@@ -36,8 +47,18 @@ export default function NoteForm({ onClose }: NoteFormProps) {
     values: NoteFormValues,
     actions: FormikHelpers<NoteFormValues>
   ) => {
-    console.log("Form submitted:", values);
-    actions.resetForm();
+    mutation.mutate(values, {
+      onSuccess: () => {
+        actions.resetForm();
+        actions.setSubmitting(false);
+      },
+      onError: () => {
+        actions.setSubmitting(false);
+      },
+      onSettled: () => {
+        actions.setSubmitting(false);
+      },
+    });
   };
 
   return (
