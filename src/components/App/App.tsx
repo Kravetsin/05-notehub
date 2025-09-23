@@ -9,6 +9,8 @@ import { deleteNote, useFetchNotes } from "../../services/noteService";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast, { Toaster } from "react-hot-toast";
 import { useDebouncedCallback } from "use-debounce";
+import Loader from "../Loader/Loader";
+import ErrorMessage from "../ErrorMessage/ErrorMessage";
 
 export default function App() {
   //! 🔹 States
@@ -29,7 +31,10 @@ export default function App() {
   );
 
   //! 🔹 Notes Response
-  const { data, isSuccess } = useFetchNotes(currentPage, text);
+  const { data, isSuccess, isLoading, isError } = useFetchNotes(
+    currentPage,
+    text
+  );
   const queryClient = useQueryClient();
   const deleteMutation = useMutation({
     mutationFn: deleteNote,
@@ -79,6 +84,8 @@ export default function App() {
           Create note +
         </button>
       </header>
+      {isLoading && <Loader />}
+      {isError && <ErrorMessage />}
       {data && Array.isArray(data.notes) && data.notes.length > 0 && (
         <NoteList notes={data.notes} onDeleteNote={onDeleteNote} />
       )}
