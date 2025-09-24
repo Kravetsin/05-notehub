@@ -1,56 +1,41 @@
 import { useState, useEffect } from "react";
 import css from "./App.module.css";
-import styles from "../Pagination/Pagination.module.css";
 import NoteList from "../NoteList/NoteList";
-import ReactPaginate from "react-paginate";
 import SearchBox from "../SearchBox/SearchBox";
 import Modal from "../Modal/Modal";
-import { deleteNote, useFetchNotes } from "../../services/noteService";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useFetchNotes } from "../../services/noteService";
 import toast, { Toaster } from "react-hot-toast";
-import { useDebouncedCallback } from "use-debounce";
+import { useDebounce } from "use-debounce";
 import Loader from "../Loader/Loader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import NoteForm from "../NoteForm/NoteForm";
+import Pagination from "../Pagination/Pagination";
 
 export default function App() {
   //! 🔹 States
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [text, setText] = useState("");
+  const [rawSearch, setRawSearch] = useState("");
+
+  //! 🔹 Debounced search
+  const [debouncedSearch] = useDebounce(rawSearch, 300);
 
   //! 🔹 Modal
   const closeModal = () => setIsModalOpen(false);
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-
-  //! 🔹 Debounce Search
-  const handleChange = useDebouncedCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => setText(event.target.value),
-    300
-  );
+  const openModal = () => setIsModalOpen(true);
 
   //! 🔹 Notes Response
   const { data, isSuccess, isLoading, isError } = useFetchNotes(
     currentPage,
-    text
+    debouncedSearch
   );
-  const queryClient = useQueryClient();
-  const deleteMutation = useMutation({
-    mutationFn: deleteNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-    },
-  });
-  const onDeleteNote = (id: string) => {
-    deleteMutation.mutate(id);
-  };
 
-  //! 🔹 Hooks
+  //! 🔹 Reset page when search changes (only after debounce)
   useEffect(() => {
     setCurrentPage(1);
-  }, [text]);
+  }, [debouncedSearch]);
 
+  //! 🔹 Handle "no notes found"
   useEffect(() => {
     if (
       isSuccess &&
@@ -66,18 +51,12 @@ export default function App() {
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
-        <SearchBox onChange={handleChange} />
+        <SearchBox onChange={(e) => setRawSearch(e.target.value)} />
         {data?.totalPages && data.totalPages > 1 && (
-          <ReactPaginate
+          <Pagination
             pageCount={data.totalPages}
-            pageRangeDisplayed={5}
-            marginPagesDisplayed={1}
-            onPageChange={({ selected }) => setCurrentPage(selected + 1)}
-            forcePage={currentPage - 1}
-            containerClassName={styles.pagination}
-            activeClassName={styles.active}
-            nextLabel="→"
-            previousLabel="←"
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
           />
         )}
         <button onClick={openModal} className={css.button}>
@@ -87,10 +66,13 @@ export default function App() {
       {isLoading && <Loader />}
       {isError && <ErrorMessage />}
       {data && Array.isArray(data.notes) && data.notes.length > 0 && (
-        <NoteList notes={data.notes} onDeleteNote={onDeleteNote} />
+        <NoteList notes={data.notes} />
       )}
-      {isModalOpen && <Modal onClose={closeModal} />}
-
+      {isModalOpen && (
+        <Modal onClose={closeModal}>
+          <NoteForm onClose={closeModal} />
+        </Modal>
+      )}
       <Toaster />
     </div>
   );

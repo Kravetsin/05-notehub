@@ -19,7 +19,6 @@ const initialValues: NoteFormValues = {
 
 type NoteFormProps = {
   onClose: () => void;
-  value: NoteFormValues;
 };
 
 export default function NoteForm({ onClose }: NoteFormProps) {
@@ -33,6 +32,7 @@ export default function NoteForm({ onClose }: NoteFormProps) {
       onClose();
     },
   });
+
   const OrderFormSchema = Yup.object().shape({
     title: Yup.string()
       .min(3, "Title must be at least 3 characters")
@@ -41,6 +41,9 @@ export default function NoteForm({ onClose }: NoteFormProps) {
     content: Yup.string()
       .max(500, "Content is too long")
       .required("Content is required"),
+    tag: Yup.mixed<NoteFormValues["tag"]>()
+      .oneOf(["Work", "Personal", "Todo", "Meeting", "Shopping"])
+      .required("Tag is required"),
   });
 
   const handleSubmit = (
@@ -112,7 +115,11 @@ export default function NoteForm({ onClose }: NoteFormProps) {
           <button type="button" className={css.cancelButton} onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className={css.submitButton} disabled={false}>
+          <button
+            type="submit"
+            className={css.submitButton}
+            disabled={mutation.isPending}
+          >
             Create note
           </button>
         </div>

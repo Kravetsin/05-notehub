@@ -38,9 +38,9 @@ export const createNote = async (noteData: {
   title: string;
   content: string;
   tag: string;
-}): Promise<NoteHttpProps> => {
+}): Promise<Note> => {
   try {
-    const response = await axios.post<NoteHttpProps>("notes", noteData, {
+    const response = await axios.post<Note>("notes", noteData, {
       headers: {
         accept: "application/json",
         Authorization: `Bearer ${myKey}`,
@@ -55,15 +55,17 @@ export const createNote = async (noteData: {
   }
 };
 
-export const deleteNote = async (id: string): Promise<void> => {
+export const deleteNote = async (id: string): Promise<Note> => {
   try {
-    await axios.delete(`/notes/${id}`, {
+    const response = await axios.delete<Note>(`/notes/${id}`, {
       headers: {
         accept: "application/json",
         Authorization: `Bearer ${myKey}`,
       },
     });
+
     toast.success("Note deleted successfully!");
+    return response.data;
   } catch (error) {
     toast.error("Error deleting note");
     throw error;
@@ -75,5 +77,6 @@ export const useFetchNotes = (currentPage: number, search: string) => {
     queryKey: ["notes", currentPage, search],
     queryFn: () => fetchNotes(currentPage, search),
     placeholderData: keepPreviousData,
+    staleTime: 1000 * 30,
   });
 };
